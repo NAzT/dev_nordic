@@ -786,10 +786,11 @@ int Gsm_CheckNetworkCmd(void)
 int Gsm_Init(void)
 {
     //int  ret;
+    NRF_LOG_INFO("Gsm_Init");
     int time_count;
     Gsm_Gpio_Init();
     Gsm_PowerUp();
-    NRF_LOG_INFO("Gsm_Init");
+    
 
     rak_uart_init(GSM_USE_UART, GSM_RXD_PIN, GSM_TXD_PIN, UARTE_BAUDRATE_BAUDRATE_Baud57600);
 

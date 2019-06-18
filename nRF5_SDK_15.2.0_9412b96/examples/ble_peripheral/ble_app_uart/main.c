@@ -703,6 +703,7 @@ uint8_t TCPopenNetwork(const char *host, int port) {
 //}
 
 void gsm_task(void *pvParameter) {
+  
   uint8_t rsp[500] = {0};
   uint8_t device_key[9] = {0};
   uint8_t test_data[256] = {0};
@@ -729,7 +730,7 @@ void gsm_task(void *pvParameter) {
     // while(ble_status == 1)
     //       {
     NRF_LOG_INFO("doing gsm_task");
-    vTaskDelay(1000);
+    vTaskDelay(100);
 
     char str_tmp[64];
     memset(str_tmp, 0, 64);
@@ -764,8 +765,7 @@ void gsm_task(void *pvParameter) {
     //        }
 
     gps_data_get_bus(gps_data, 128);
-
-    vTaskDelay(500);
+    vTaskDelay(100);
     NRF_LOG_INFO("GPS = %s\r\n", gps_data);
     //              memset(test_data,0,256);
     //              sensor_len = sprintf((char *)test_data,"Acc:%d,%d,%d;Tem:%d;Hum:%d;Pre:%d;Mag:%d,%d,%d;Lig:%d;Gps:%s;",x,y,z,(int)temp,(int)humidity,(int)pressure,(int)magnetic_x,(int)magnetic_y,(int)magnetic_z,(int)light,gps_data);
@@ -821,18 +821,21 @@ static void main_task_function(void *pvParameter) {
   UNUSED_PARAMETER(pvParameter);
   while (1) {
     NRF_LOG_FLUSH();
+//    NRF_LOG_INFO("MAIN TASK");
+//    NRF_LOG_FLUSH();
     nrf_gpio_pin_write(LED_PIN, 1);
-    vTaskDelay(1000);
     NRF_LOG_FLUSH();
+    vTaskDelay(100);
+//    NRF_LOG_FLUSH();s
     nrf_gpio_pin_write(LED_PIN, 0);
-    vTaskDelay(1000);
+    vTaskDelay(100);
   }
 
   /* Tasks must be implemented to never return... */
 }
 
 static void motor_task_function(void *pvParameter) {
-
+  NRF_LOG_INFO("MOTOR_TASK START");
   UNUSED_PARAMETER(pvParameter);
   nrf_gpio_cfg_output(DRV88_IN1_PIN); // ccw
   nrf_gpio_cfg_output(DRV88_IN2_PIN); // cw
@@ -842,12 +845,13 @@ static void motor_task_function(void *pvParameter) {
   nrf_gpio_cfg_input(LIMIT_SW3_PIN, NRF_GPIO_PIN_NOPULL);
 
   while (true) {
+//    NRF_LOG_INFO("MOTOR_TASK POOLING..");
     if (nrf_gpio_pin_read(LIMIT_SW1_PIN) == 1) {
       lock_status = 0;
     } else {
       lock_status = 1;
     }
-
+    vTaskDelay(500);
     if (unlock_command == 1) {
 
       NRF_LOG_INFO("Unlocking \n");
@@ -857,21 +861,25 @@ static void motor_task_function(void *pvParameter) {
       vTaskDelay(20);
       nrf_gpio_pin_write(DRV88_IN2_PIN, 0);
       while (nrf_gpio_pin_read(LIMIT_SW2_PIN) == 0) {
-        vTaskDelay(1);
+        NRF_LOG_INFO("LIMIT_SW2 == 0");
+        vTaskDelay(100);
       }
       while (nrf_gpio_pin_read(LIMIT_SW3_PIN) == 1) {
-        vTaskDelay(1);
+        NRF_LOG_INFO("LIMIT_SW3 == 1");
+        vTaskDelay(100);
       }
       nrf_gpio_pin_write(DRV88_IN2_PIN, 1);
       vTaskDelay(200);
       nrf_gpio_pin_write(DRV88_IN1_PIN, 0);
 
       while (nrf_gpio_pin_read(LIMIT_SW3_PIN) == 0) {
-        vTaskDelay(1);
+        NRF_LOG_INFO("LIMIT_SW3_PIN == 0");
+        vTaskDelay(100);
       }
 
       while (nrf_gpio_pin_read(LIMIT_SW3_PIN) == 1) {
         vTaskDelay(1);
+        NRF_LOG_INFO("LIMIT_SW3_PIN == 1");
       }
       nrf_gpio_pin_write(DRV88_IN1_PIN, 1);
       vTaskDelay(50);
@@ -914,23 +922,20 @@ int main(void) {
   NRF_LOG_INFO("[Booting...]");
   NRF_LOG_INFO("[Booting...]");
   NRF_LOG_INFO("[Booting...]");
-  Gsm_Init();
-
   NRF_LOG_INFO("Debug logging for UART over RTT started.");
+  
+Gsm_Init();
 
   xTaskCreate(gsm_task, "gsm_task", 2048, NULL, 2, NULL);
-
   xTaskCreate(motor_task_function, "idle_state", 64, NULL, 2, NULL);
-
   xTaskCreate(main_task_function, "main_task", 128, NULL, 2, NULL);
 
   NRF_LOG_INFO("vTaskStartScheduler started.");
-
   vTaskStartScheduler();
 
   // Enter main loop.
   for (;;) {
-    //idle_state_handle();
+    idle_state_handle();
   }
 }
 
