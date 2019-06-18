@@ -673,7 +673,7 @@ uint8_t TCPopenNetwork(const char *host, int port) {
 
   sprintf((char *)len, "AT+CIPSTART=\"TCP\",\"%s\",%d", host, port);
   Gsm_print(len);
-  SEGGER_RTT_printf("TCPopenNETWORK");
+  //SEGGER_RTT_printf("TCPopenNETWORK");
 
   return Gsm_WaitRspOK(str_tmp, 1000, true);
 }
@@ -770,7 +770,7 @@ void gsm_task(void *pvParameter) {
     //
     //        }
 
-    gps_data_get_bus(gps_data, 128);
+    
     vTaskDelay(100);
     SEGGER_RTT_printf(0, "GPS = %s\r\n", gps_data);
     //              memset(test_data,0,256);
