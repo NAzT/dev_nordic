@@ -766,7 +766,7 @@ void gsm_task(void *pvParameter) {
 
     gps_data_get_bus(gps_data, 128);
     vTaskDelay(100);
-    NRF_LOG_INFO("GPS = %s\r\n", gps_data);
+    SEGGER_RTT_printf(0, "GPS = %s\r\n", gps_data);
     //              memset(test_data,0,256);
     //              sensor_len = sprintf((char *)test_data,"Acc:%d,%d,%d;Tem:%d;Hum:%d;Pre:%d;Mag:%d,%d,%d;Lig:%d;Gps:%s;",x,y,z,(int)temp,(int)humidity,(int)pressure,(int)magnetic_x,(int)magnetic_y,(int)magnetic_z,(int)light,gps_data);
     //              memset(cmd,0,128);
@@ -835,7 +835,7 @@ static void main_task_function(void *pvParameter) {
 }
 
 static void motor_task_function(void *pvParameter) {
-  NRF_LOG_INFO("MOTOR_TASK START");
+  SEGGER_RTT_printf(0, "MOTOR_TASK START\r\n");
   UNUSED_PARAMETER(pvParameter);
   nrf_gpio_cfg_output(DRV88_IN1_PIN); // ccw
   nrf_gpio_cfg_output(DRV88_IN2_PIN); // cw
@@ -846,26 +846,28 @@ static void motor_task_function(void *pvParameter) {
 
   while (true) {
 //    NRF_LOG_INFO("MOTOR_TASK POOLING..");
+    
     if (nrf_gpio_pin_read(LIMIT_SW1_PIN) == 1) {
       lock_status = 0;
     } else {
       lock_status = 1;
     }
+    SEGGER_RTT_printf(0, "[MOTOR TASK] LOCK STATUS=%d\r\n", lock_status);
     vTaskDelay(500);
     if (unlock_command == 1) {
 
-      NRF_LOG_INFO("Unlocking \n");
+      SEGGER_RTT_printf(0, "Unlocking \n");
 
       nrf_gpio_pin_write(DRV88_IN1_PIN, 1);
       nrf_gpio_pin_write(DRV88_IN2_PIN, 1);
       vTaskDelay(20);
       nrf_gpio_pin_write(DRV88_IN2_PIN, 0);
       while (nrf_gpio_pin_read(LIMIT_SW2_PIN) == 0) {
-        NRF_LOG_INFO("LIMIT_SW2 == 0");
+        SEGGER_RTT_printf(0, "LIMIT_SW2 == 0");
         vTaskDelay(100);
       }
       while (nrf_gpio_pin_read(LIMIT_SW3_PIN) == 1) {
-        NRF_LOG_INFO("LIMIT_SW3 == 1");
+         SEGGER_RTT_printf(0, "LIMIT_SW3 == 1");
         vTaskDelay(100);
       }
       nrf_gpio_pin_write(DRV88_IN2_PIN, 1);
@@ -873,13 +875,13 @@ static void motor_task_function(void *pvParameter) {
       nrf_gpio_pin_write(DRV88_IN1_PIN, 0);
 
       while (nrf_gpio_pin_read(LIMIT_SW3_PIN) == 0) {
-        NRF_LOG_INFO("LIMIT_SW3_PIN == 0");
+         SEGGER_RTT_printf(0, "LIMIT_SW3_PIN == 0");
         vTaskDelay(100);
       }
 
       while (nrf_gpio_pin_read(LIMIT_SW3_PIN) == 1) {
         vTaskDelay(1);
-        NRF_LOG_INFO("LIMIT_SW3_PIN == 1");
+         SEGGER_RTT_printf(0, "LIMIT_SW3_PIN == 1");
       }
       nrf_gpio_pin_write(DRV88_IN1_PIN, 1);
       vTaskDelay(50);
