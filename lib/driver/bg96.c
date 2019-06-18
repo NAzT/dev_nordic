@@ -147,7 +147,7 @@ int Gsm_WaitRspOK(char *rsp_value, uint16_t timeout_ms, uint8_t is_rf)
     wait_len = is_rf ? strlen(GSM_CMD_RSP_OK_RF) : strlen(GSM_CMD_RSP_OK);
 //    NRF_LOG_INFO("WAIT LEN=");
 //    NRF_LOG_INFO(wait_len
-//    SEGGER_RTT_printf(0,"--%s  wait len=%d", rsp_value, wait_len);
+    SEGGER_RTT_printf(0,"[Gsm_WaitRspOK]\r\n");
     if (g_type == GSM_TYPE_FILE)
     {
           NRF_LOG_INFO("GSM_TYPE_FILE");
@@ -195,7 +195,7 @@ int Gsm_WaitRspOK(char *rsp_value, uint16_t timeout_ms, uint8_t is_rf)
                     if (i > wait_len && rsp_value != NULL)
                     {
                         //NRF_LOG_INFO("SHOULD PRINT");
-                        SEGGER_RTT_printf(0,"--%s  len=%d", rsp_value, i);
+                        SEGGER_RTT_printf(0,"[rsp_value] --%s  len=%d", rsp_value, i);
                         memcpy(rsp_value, GSM_RSP, i);
                     }
                     ret = 0;
@@ -359,6 +359,7 @@ void Gsm_print(uint8_t *at_cmd)
         return;
     memset(CMD, 0, 512);
     cmd_len = sprintf((char *)CMD, "%s\r\n", at_cmd);
+    SEGGER_RTT_printf(0, "\r\n[Gsm_print] cmd=%s\r\n", CMD);
     GSM_UART_TxBuf(CMD, cmd_len);
 }
 
@@ -788,11 +789,15 @@ int Gsm_Init(void)
     //int  ret;
     NRF_LOG_INFO("Gsm_Init");
     int time_count;
+
     Gsm_Gpio_Init();
-    Gsm_PowerUp();
-    
 
     rak_uart_init(GSM_USE_UART, GSM_RXD_PIN, GSM_TXD_PIN, UARTE_BAUDRATE_BAUDRATE_Baud57600);
+
+
+    Gsm_PowerDown();
+    Gsm_PowerUp();
+    
 
     char str_tmp[64];
     memset(str_tmp, 0, 64);
@@ -806,7 +811,7 @@ int Gsm_Init(void)
     Gsm_WaitRspOK(str_tmp, 1000, true);
     nrf_delay_ms(2);
 	
-	  Gsm_print("AT+CPIN?");//Check SIM card							
+    Gsm_print("AT+CPIN?");//Check SIM card							
     Gsm_WaitRspOK(str_tmp, 1000, true);
     nrf_delay_ms(100);
 		
@@ -818,7 +823,7 @@ int Gsm_Init(void)
     Gsm_WaitRspOK(str_tmp, 1000, true);
 		
     //gps_config();
-
+//    //Segger_RTT_printf(0, "Waiting 1000ms\r\n");
     nrf_delay_ms(1000);
     return 0;
 }

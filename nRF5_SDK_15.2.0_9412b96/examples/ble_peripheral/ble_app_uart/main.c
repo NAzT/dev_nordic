@@ -673,7 +673,7 @@ uint8_t TCPopenNetwork(const char *host, int port) {
 
   sprintf((char *)len, "AT+CIPSTART=\"TCP\",\"%s\",%d", host, port);
   Gsm_print(len);
-  NRF_LOG("TCPopenNETWORK");
+  SEGGER_RTT_printf("TCPopenNETWORK");
 
   return Gsm_WaitRspOK(str_tmp, 1000, true);
 }
@@ -703,7 +703,7 @@ uint8_t TCPopenNetwork(const char *host, int port) {
 //}
 
 void gsm_task(void *pvParameter) {
-    Gsm_Init();
+  
   uint8_t rsp[500] = {0};
   uint8_t device_key[9] = {0};
   uint8_t test_data[256] = {0};
@@ -725,30 +725,36 @@ void gsm_task(void *pvParameter) {
   uint8_t i = 0;
   uint8_t j = 0;
 
+    char str_tmp[64];
+    memset(str_tmp, 0, 64);
+//    Gsm_print("AT+CGNSPWR=1");
+//    Gsm_WaitRspOK(str_tmp, 1000, true);
+//    vTaskDelay(100);
+//
+//    memset(str_tmp, 0, 64);
+//    Gsm_print("AT+CSTT=\"ctnb\"");
+//    Gsm_WaitRspOK(str_tmp, 1000, true);
+//    vTaskDelay(100);
+//
+    memset(str_tmp, 0, 64);
+    Gsm_print("AT+CGATT?");
+    Gsm_WaitRspOK(str_tmp, 1000, true);
+    nrf_delay_ms(100);
+//
+//    Gsm_print("AT+CIICR");
+//    vTaskDelay(100);
+
+
   NRF_LOG_INFO("[gsp task] Gsm_Inited.");
   while (1) {
     // while(ble_status == 1)
     //       {
+    memset(str_tmp, 0, 64);
+    Gsm_print("AT+CGATT?");
+    Gsm_WaitRspOK(str_tmp, 1000, true);
+    nrf_delay_ms(100);
+
     NRF_LOG_INFO("doing gsm_task");
-    vTaskDelay(100);
-
-    char str_tmp[64];
-    memset(str_tmp, 0, 64);
-    Gsm_print("AT+CGNSPWR=1");
-    Gsm_WaitRspOK(str_tmp, 1000, true);
-    vTaskDelay(100);
-
-    memset(str_tmp, 0, 64);
-    Gsm_print("AT+CSTT=\"ctnb\"");
-    Gsm_WaitRspOK(str_tmp, 1000, true);
-    vTaskDelay(100);
-
-    memset(str_tmp, 0, 64);
-    Gsm_print("AT+CIICR");
-    Gsm_WaitRspOK(str_tmp, 1000, true);
-    vTaskDelay(100);
-
-    Gsm_print("AT+CIICR");
     vTaskDelay(100);
 
     //        if(TCPopenNetwork(serverIP,1883)){                  //Connect to server
@@ -808,7 +814,7 @@ void gsm_task(void *pvParameter) {
     //          j = 0;
     //          vTaskDelay(10000);
     //      }
-    //      //Gsm_PowerDown();
+    //      //
 
     //idle_state_handle(); // sleep
   }
@@ -846,13 +852,12 @@ static void motor_task_function(void *pvParameter) {
 
   while (true) {
 //    NRF_LOG_INFO("MOTOR_TASK POOLING..");
-    
+    //SEGGER_RTT_printf(0, "[MOTOR TASK] LOCK STATUS=%d\r\n", lock_status);
     if (nrf_gpio_pin_read(LIMIT_SW1_PIN) == 1) {
       lock_status = 0;
     } else {
       lock_status = 1;
     }
-//    SEGGER_RTT_printf(0, "[MOTOR TASK] LOCK STATUS=%d\r\n", lock_status);
     vTaskDelay(500);
     if (unlock_command == 1) {
 
@@ -926,6 +931,7 @@ int main(void) {
   NRF_LOG_INFO("[Booting...]");
   NRF_LOG_INFO("Debug logging for UART over RTT started.");
   
+Gsm_Init();
 
   xTaskCreate(gsm_task, "gsm_task", 2048, NULL, 2, NULL);
   xTaskCreate(motor_task_function, "idle_state", 64, NULL, 2, NULL);
