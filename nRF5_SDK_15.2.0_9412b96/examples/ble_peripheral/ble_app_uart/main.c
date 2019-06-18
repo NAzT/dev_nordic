@@ -703,7 +703,7 @@ uint8_t TCPopenNetwork(const char *host, int port) {
 //}
 
 void gsm_task(void *pvParameter) {
-  
+    Gsm_Init();
   uint8_t rsp[500] = {0};
   uint8_t device_key[9] = {0};
   uint8_t test_data[256] = {0};
@@ -852,7 +852,7 @@ static void motor_task_function(void *pvParameter) {
     } else {
       lock_status = 1;
     }
-    SEGGER_RTT_printf(0, "[MOTOR TASK] LOCK STATUS=%d\r\n", lock_status);
+//    SEGGER_RTT_printf(0, "[MOTOR TASK] LOCK STATUS=%d\r\n", lock_status);
     vTaskDelay(500);
     if (unlock_command == 1) {
 
@@ -926,7 +926,6 @@ int main(void) {
   NRF_LOG_INFO("[Booting...]");
   NRF_LOG_INFO("Debug logging for UART over RTT started.");
   
-Gsm_Init();
 
   xTaskCreate(gsm_task, "gsm_task", 2048, NULL, 2, NULL);
   xTaskCreate(motor_task_function, "idle_state", 64, NULL, 2, NULL);
