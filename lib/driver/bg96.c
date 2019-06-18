@@ -56,7 +56,7 @@ int GSM_UART_TxBuf(uint8_t *buffer, int nbytes)
             err_code = app_uart_put(buffer[i]);
             if ((err_code != NRF_SUCCESS) && (err_code != NRF_ERROR_BUSY))
             {
-                //NRF_LOG_ERROR("Failed receiving NUS message. Error 0x%x. ", err_code);
+                NRF_LOG_ERROR("Failed receiving NUS message. Error 0x%x. ", err_code);
                 APP_ERROR_CHECK(err_code);
             }
         } while (err_code == NRF_ERROR_BUSY);
@@ -145,9 +145,12 @@ int Gsm_WaitRspOK(char *rsp_value, uint16_t timeout_ms, uint8_t is_rf)
     char *cmp_p = NULL;
 
     wait_len = is_rf ? strlen(GSM_CMD_RSP_OK_RF) : strlen(GSM_CMD_RSP_OK);
-
+//    NRF_LOG_INFO("WAIT LEN=");
+//    NRF_LOG_INFO(wait_len
+//    SEGGER_RTT_printf(0,"--%s  wait len=%d", rsp_value, wait_len);
     if (g_type == GSM_TYPE_FILE)
     {
+          NRF_LOG_INFO("GSM_TYPE_FILE");
         //        do
         //        {
         //            c = Gsm_RxByte();
@@ -166,6 +169,7 @@ int Gsm_WaitRspOK(char *rsp_value, uint16_t timeout_ms, uint8_t is_rf)
     }
     else
     {
+//        NRF_LOG_INFO("<<<<");
         memset(GSM_RSP, 0, 1600);
         do
         {
@@ -190,7 +194,8 @@ int Gsm_WaitRspOK(char *rsp_value, uint16_t timeout_ms, uint8_t is_rf)
                 {
                     if (i > wait_len && rsp_value != NULL)
                     {
-                        //SEGGER_RTT_printf(0,"--%s  len=%d", rsp_value, i);
+                        //NRF_LOG_INFO("SHOULD PRINT");
+                        SEGGER_RTT_printf(0,"--%s  len=%d", rsp_value, i);
                         memcpy(rsp_value, GSM_RSP, i);
                     }
                     ret = 0;
@@ -512,6 +517,7 @@ void Gsm_nb_iot_config(void)
 
 void gps_config(void)
 {
+    NRF_LOG_INFO("GPS_CONIG");
     int ret = -1;
     uint8_t cmd_len;
     uint8_t RSP[128] = {0};
@@ -553,8 +559,8 @@ void gps_data_checksum(char *str)
         check[j++] = str[i];
     }
     sprintf(result_2, "%X", result);
-    //NRF_LOG_INFO( "result_2 = %s",result_2);
-    //NRF_LOG_INFO( "check = %s",check);
+    NRF_LOG_INFO( "[gps_checksum] result_2 = %s",result_2);
+    NRF_LOG_INFO( "[gps_checksum] check = %s",check);
 
     if (strncmp(check, result_2, 2) != 0)
     {
@@ -592,8 +598,10 @@ void gps_parse(uint8_t *data)
     memset(data, 0, 128);
     memcpy(data, gps_info, i_gps + 1);
 }
+
 void gps_data_get(uint8_t *data, uint8_t len)
 {
+    NRF_LOG_INFO("gps_data_get");
     int ret = -1;
     //uint8_t cmd_len;
     //uint8_t RSP[128] = {0};

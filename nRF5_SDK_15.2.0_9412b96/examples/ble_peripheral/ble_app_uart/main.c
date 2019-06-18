@@ -12,36 +12,35 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "FreeRTOSConfig.h"
 #include "FreeRTOS.h"
+#include "FreeRTOSConfig.h"
 
 #include "semphr.h"
 #include "timers.h"
 
 #include "nrf_drv_clock.h"
 #include "nrf_drv_rtc.h"
-#include "nrf_drv_rtc.h"
 #include "nrf_rtc.h"
 
-#include "nordic_common.h"
-#include "nrf.h"
-#include "ble_hci.h"
 #include "ble_advdata.h"
 #include "ble_advertising.h"
 #include "ble_conn_params.h"
+#include "ble_hci.h"
+#include "nordic_common.h"
+#include "nrf.h"
 #include "nrf_sdh.h"
-#include "nrf_sdh_soc.h"
 #include "nrf_sdh_ble.h"
+#include "nrf_sdh_soc.h"
 
-#include "nrf_ble_gatt.h"
-#include "nrf_ble_qwr.h"
 #include "app_timer.h"
-#include "ble_nus.h"
 #include "app_uart.h"
 #include "app_util_platform.h"
-#include "bsp_btn_ble.h"
-#include "nrf_pwr_mgmt.h"
+#include "ble_nus.h"
 #include "board_basic.h"
+#include "bsp_btn_ble.h"
+#include "nrf_ble_gatt.h"
+#include "nrf_ble_qwr.h"
+#include "nrf_pwr_mgmt.h"
 
 #include "pin_define.h"
 
@@ -103,9 +102,8 @@ BLE_ADVERTISING_DEF(m_advertising);               /**< Advertising module instan
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;               /**< Handle of the current connection. */
 static uint16_t m_ble_nus_max_data_len = BLE_GATT_ATT_MTU_DEFAULT - 3; /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
 static ble_uuid_t m_adv_uuids[] =                                      /**< Universally unique service identifier. */
-{
-  {BLE_UUID_NUS_SERVICE, NUS_SERVICE_UUID_TYPE}
-};
+    {
+        {BLE_UUID_NUS_SERVICE, NUS_SERVICE_UUID_TYPE}};
 
 /**@brief Function for assert macro callback.
 
@@ -119,15 +117,13 @@ static ble_uuid_t m_adv_uuids[] =                                      /**< Univ
    @param[in] p_file_name File name of the failing ASSERT call.
 */
 
-void assert_nrf_callback(uint16_t line_num, const uint8_t *p_file_name)
-{
+void assert_nrf_callback(uint16_t line_num, const uint8_t *p_file_name) {
   app_error_handler(DEAD_BEEF, line_num, p_file_name);
 }
 
 /**@brief Function for initializing the timer module.
 */
-static void timers_init(void)
-{
+static void timers_init(void) {
   ret_code_t err_code = app_timer_init();
   APP_ERROR_CHECK(err_code);
 }
@@ -137,8 +133,7 @@ static void timers_init(void)
    @details This function will set up all the necessary GAP (Generic Access Profile) parameters of
             the device. It also sets the permissions and appearance.
 */
-static void gap_params_init(void)
-{
+static void gap_params_init(void) {
   uint32_t err_code;
   ble_gap_conn_params_t gap_conn_params;
   ble_gap_conn_sec_mode_t sec_mode;
@@ -146,8 +141,8 @@ static void gap_params_init(void)
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);
 
   err_code = sd_ble_gap_device_name_set(&sec_mode,
-                                        (const uint8_t *)DEVICE_NAME,
-                                        strlen(DEVICE_NAME));
+      (const uint8_t *)DEVICE_NAME,
+      strlen(DEVICE_NAME));
   APP_ERROR_CHECK(err_code);
 
   memset(&gap_conn_params, 0, sizeof(gap_conn_params));
@@ -168,8 +163,7 @@ static void gap_params_init(void)
 
    @param[in]   nrf_error   Error code containing information about what went wrong.
 */
-static void nrf_qwr_error_handler(uint32_t nrf_error)
-{
+static void nrf_qwr_error_handler(uint32_t nrf_error) {
   APP_ERROR_HANDLER(nrf_error);
 }
 
@@ -181,26 +175,21 @@ static void nrf_qwr_error_handler(uint32_t nrf_error)
    @param[in] p_evt       Nordic UART Service event.
 */
 /**@snippet [Handling the data received over BLE] */
-static void nus_data_handler(ble_nus_evt_t *p_evt)
-{
+static void nus_data_handler(ble_nus_evt_t *p_evt) {
 
-  if (p_evt->type == BLE_NUS_EVT_RX_DATA)
-  {
+  if (p_evt->type == BLE_NUS_EVT_RX_DATA) {
 
     NRF_LOG_INFO("Received data from BLE NUS. Writing data on UART.");
     NRF_LOG_HEXDUMP_DEBUG(p_evt->params.rx_data.p_data, p_evt->params.rx_data.length);
 
-    for (uint32_t i = 0; i < p_evt->params.rx_data.length; i++)
-    {
+    for (uint32_t i = 0; i < p_evt->params.rx_data.length; i++) {
 
-      if (p_evt->params.rx_data.p_data[i] == '1')
-      {
+      if (p_evt->params.rx_data.p_data[i] == '1') {
         nrf_gpio_pin_write(LED_PIN, 0);
         unlock_command = 1;
         NRF_LOG_INFO("Received UNLOCK command");
       }
-      if (p_evt->params.rx_data.p_data[i] == '0')
-      {
+      if (p_evt->params.rx_data.p_data[i] == '0') {
         nrf_gpio_pin_write(LED_PIN, 1);
       }
     }
@@ -214,8 +203,7 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
 
 /**@brief Function for initializing services that will be used by the application.
 */
-static void services_init(void)
-{
+static void services_init(void) {
   uint32_t err_code;
   ble_nus_init_t nus_init;
   nrf_ble_qwr_init_t qwr_init = {0};
@@ -246,12 +234,10 @@ static void services_init(void)
 
    @param[in] p_evt  Event received from the Connection Parameters Module.
 */
-static void on_conn_params_evt(ble_conn_params_evt_t *p_evt)
-{
+static void on_conn_params_evt(ble_conn_params_evt_t *p_evt) {
   uint32_t err_code;
 
-  if (p_evt->evt_type == BLE_CONN_PARAMS_EVT_FAILED)
-  {
+  if (p_evt->evt_type == BLE_CONN_PARAMS_EVT_FAILED) {
     err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_CONN_INTERVAL_UNACCEPTABLE);
     APP_ERROR_CHECK(err_code);
   }
@@ -261,15 +247,13 @@ static void on_conn_params_evt(ble_conn_params_evt_t *p_evt)
 
    @param[in] nrf_error  Error code containing information about what went wrong.
 */
-static void conn_params_error_handler(uint32_t nrf_error)
-{
+static void conn_params_error_handler(uint32_t nrf_error) {
   APP_ERROR_HANDLER(nrf_error);
 }
 
 /**@brief Function for initializing the Connection Parameters module.
 */
-static void conn_params_init(void)
-{
+static void conn_params_init(void) {
   uint32_t err_code;
   ble_conn_params_init_t cp_init;
 
@@ -292,8 +276,7 @@ static void conn_params_init(void)
 
    @note This function will not return.
 */
-static void sleep_mode_enter(void)
-{
+static void sleep_mode_enter(void) {
   //    err_code = bsp_indication_set(BSP_INDICATE_IDLE);
   //    APP_ERROR_CHECK(err_code);
 
@@ -312,20 +295,18 @@ static void sleep_mode_enter(void)
 
    @param[in] ble_adv_evt  Advertising event.
 */
-static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
-{
+static void on_adv_evt(ble_adv_evt_t ble_adv_evt) {
 
-  switch (ble_adv_evt)
-  {
-    case BLE_ADV_EVT_FAST:
-      //uint32_t err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING);
-      //APP_ERROR_CHECK(err_code);
-      break;
-    case BLE_ADV_EVT_IDLE:
-      sleep_mode_enter();
-      break;
-    default:
-      break;
+  switch (ble_adv_evt) {
+  case BLE_ADV_EVT_FAST:
+    //uint32_t err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING);
+    //APP_ERROR_CHECK(err_code);
+    break;
+  case BLE_ADV_EVT_IDLE:
+    sleep_mode_enter();
+    break;
+  default:
+    break;
   }
 }
 
@@ -334,71 +315,67 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
    @param[in]   p_ble_evt   Bluetooth stack event.
    @param[in]   p_context   Unused.
 */
-static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context)
-{
+static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context) {
   uint32_t err_code;
 
-  switch (p_ble_evt->header.evt_id)
-  {
-    case BLE_GAP_EVT_CONNECTED:
-      NRF_LOG_INFO("Connected");
-      ble_status = 1;
-      nrf_gpio_pin_write(LED_PIN, 0);
-      m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
-      err_code = nrf_ble_qwr_conn_handle_assign(&m_qwr, m_conn_handle);
-      APP_ERROR_CHECK(err_code);
-      break;
+  switch (p_ble_evt->header.evt_id) {
+  case BLE_GAP_EVT_CONNECTED:
+    NRF_LOG_INFO("Connected");
+    ble_status = 1;
+    nrf_gpio_pin_write(LED_PIN, 0);
+    m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
+    err_code = nrf_ble_qwr_conn_handle_assign(&m_qwr, m_conn_handle);
+    APP_ERROR_CHECK(err_code);
+    break;
 
-    case BLE_GAP_EVT_DISCONNECTED:
-      NRF_LOG_INFO("Disconnected");
-      ble_status = 0;
-      nrf_gpio_pin_write(LED_PIN, 1);
-      // LED indication will be changed when advertising starts.
-      m_conn_handle = BLE_CONN_HANDLE_INVALID;
-      break;
+  case BLE_GAP_EVT_DISCONNECTED:
+    NRF_LOG_INFO("Disconnected");
+    ble_status = 0;
+    nrf_gpio_pin_write(LED_PIN, 1);
+    // LED indication will be changed when advertising starts.
+    m_conn_handle = BLE_CONN_HANDLE_INVALID;
+    break;
 
-    case BLE_GAP_EVT_PHY_UPDATE_REQUEST:
-      {
-        NRF_LOG_DEBUG("PHY update request.");
-        ble_gap_phys_t const phys =
+  case BLE_GAP_EVT_PHY_UPDATE_REQUEST: {
+    NRF_LOG_DEBUG("PHY update request.");
+    ble_gap_phys_t const phys =
         {
-          .rx_phys = BLE_GAP_PHY_AUTO,
-          .tx_phys = BLE_GAP_PHY_AUTO,
+            .rx_phys = BLE_GAP_PHY_AUTO,
+            .tx_phys = BLE_GAP_PHY_AUTO,
         };
-        err_code = sd_ble_gap_phy_update(p_ble_evt->evt.gap_evt.conn_handle, &phys);
-        APP_ERROR_CHECK(err_code);
-      }
-      break;
+    err_code = sd_ble_gap_phy_update(p_ble_evt->evt.gap_evt.conn_handle, &phys);
+    APP_ERROR_CHECK(err_code);
+  } break;
 
-    case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
-      // Pairing not supported
-      err_code = sd_ble_gap_sec_params_reply(m_conn_handle, BLE_GAP_SEC_STATUS_PAIRING_NOT_SUPP, NULL, NULL);
-      APP_ERROR_CHECK(err_code);
-      break;
+  case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
+    // Pairing not supported
+    err_code = sd_ble_gap_sec_params_reply(m_conn_handle, BLE_GAP_SEC_STATUS_PAIRING_NOT_SUPP, NULL, NULL);
+    APP_ERROR_CHECK(err_code);
+    break;
 
-    case BLE_GATTS_EVT_SYS_ATTR_MISSING:
-      // No system attributes have been stored.
-      err_code = sd_ble_gatts_sys_attr_set(m_conn_handle, NULL, 0, 0);
-      APP_ERROR_CHECK(err_code);
-      break;
+  case BLE_GATTS_EVT_SYS_ATTR_MISSING:
+    // No system attributes have been stored.
+    err_code = sd_ble_gatts_sys_attr_set(m_conn_handle, NULL, 0, 0);
+    APP_ERROR_CHECK(err_code);
+    break;
 
-    case BLE_GATTC_EVT_TIMEOUT:
-      // Disconnect on GATT Client timeout event.
-      err_code = sd_ble_gap_disconnect(p_ble_evt->evt.gattc_evt.conn_handle,
-                                       BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
-      APP_ERROR_CHECK(err_code);
-      break;
+  case BLE_GATTC_EVT_TIMEOUT:
+    // Disconnect on GATT Client timeout event.
+    err_code = sd_ble_gap_disconnect(p_ble_evt->evt.gattc_evt.conn_handle,
+        BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+    APP_ERROR_CHECK(err_code);
+    break;
 
-    case BLE_GATTS_EVT_TIMEOUT:
-      // Disconnect on GATT Server timeout event.
-      err_code = sd_ble_gap_disconnect(p_ble_evt->evt.gatts_evt.conn_handle,
-                                       BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
-      APP_ERROR_CHECK(err_code);
-      break;
+  case BLE_GATTS_EVT_TIMEOUT:
+    // Disconnect on GATT Server timeout event.
+    err_code = sd_ble_gap_disconnect(p_ble_evt->evt.gatts_evt.conn_handle,
+        BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+    APP_ERROR_CHECK(err_code);
+    break;
 
-    default:
-      // No implementation needed.
-      break;
+  default:
+    // No implementation needed.
+    break;
   }
 }
 
@@ -406,8 +383,7 @@ static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context)
 
    @details This function initializes the SoftDevice and the BLE event interrupt.
 */
-static void ble_stack_init(void)
-{
+static void ble_stack_init(void) {
   ret_code_t err_code;
 
   err_code = nrf_sdh_enable_request();
@@ -428,21 +404,18 @@ static void ble_stack_init(void)
 }
 
 /**@brief Function for handling events from the GATT library. */
-void gatt_evt_handler(nrf_ble_gatt_t *p_gatt, nrf_ble_gatt_evt_t const *p_evt)
-{
-  if ((m_conn_handle == p_evt->conn_handle) && (p_evt->evt_id == NRF_BLE_GATT_EVT_ATT_MTU_UPDATED))
-  {
+void gatt_evt_handler(nrf_ble_gatt_t *p_gatt, nrf_ble_gatt_evt_t const *p_evt) {
+  if ((m_conn_handle == p_evt->conn_handle) && (p_evt->evt_id == NRF_BLE_GATT_EVT_ATT_MTU_UPDATED)) {
     m_ble_nus_max_data_len = p_evt->params.att_mtu_effective - OPCODE_LENGTH - HANDLE_LENGTH;
     NRF_LOG_INFO("Data len is set to 0x%X(%d)", m_ble_nus_max_data_len, m_ble_nus_max_data_len);
   }
   NRF_LOG_DEBUG("ATT MTU exchange completed. central 0x%x peripheral 0x%x",
-                p_gatt->att_mtu_desired_central,
-                p_gatt->att_mtu_desired_periph);
+      p_gatt->att_mtu_desired_central,
+      p_gatt->att_mtu_desired_periph);
 }
 
 /**@brief Function for initializing the GATT library. */
-void gatt_init(void)
-{
+void gatt_init(void) {
   ret_code_t err_code;
 
   err_code = nrf_ble_gatt_init(&m_gatt, gatt_evt_handler);
@@ -456,36 +429,31 @@ void gatt_init(void)
 
    @param[in]   event   Event generated by button press.
 */
-void bsp_event_handler(bsp_event_t event)
-{
+void bsp_event_handler(bsp_event_t event) {
   uint32_t err_code;
-  switch (event)
-  {
-    case BSP_EVENT_SLEEP:
-      sleep_mode_enter();
-      break;
+  switch (event) {
+  case BSP_EVENT_SLEEP:
+    sleep_mode_enter();
+    break;
 
-    case BSP_EVENT_DISCONNECT:
-      err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
-      if (err_code != NRF_ERROR_INVALID_STATE)
-      {
+  case BSP_EVENT_DISCONNECT:
+    err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+    if (err_code != NRF_ERROR_INVALID_STATE) {
+      APP_ERROR_CHECK(err_code);
+    }
+    break;
+
+  case BSP_EVENT_WHITELIST_OFF:
+    if (m_conn_handle == BLE_CONN_HANDLE_INVALID) {
+      err_code = ble_advertising_restart_without_whitelist(&m_advertising);
+      if (err_code != NRF_ERROR_INVALID_STATE) {
         APP_ERROR_CHECK(err_code);
       }
-      break;
+    }
+    break;
 
-    case BSP_EVENT_WHITELIST_OFF:
-      if (m_conn_handle == BLE_CONN_HANDLE_INVALID)
-      {
-        err_code = ble_advertising_restart_without_whitelist(&m_advertising);
-        if (err_code != NRF_ERROR_INVALID_STATE)
-        {
-          APP_ERROR_CHECK(err_code);
-        }
-      }
-      break;
-
-    default:
-      break;
+  default:
+    break;
   }
 }
 
@@ -553,8 +521,7 @@ extern void uart_event_handle(app_uart_evt_t *p_event);
 /**@brief  Function for initializing the UART module.
 */
 /**@snippet [UART Initialization] */
-static void uart_init(void)
-{
+static void uart_init(void) {
   //    uint32_t                     err_code;
   //    app_uart_comm_params_t const comm_params =
   //    {
@@ -583,8 +550,7 @@ static void uart_init(void)
 
 /**@brief Function for initializing the Advertising functionality.
 */
-static void advertising_init(void)
-{
+static void advertising_init(void) {
   uint32_t err_code;
   ble_advertising_init_t init;
 
@@ -612,8 +578,7 @@ static void advertising_init(void)
 
    @param[out] p_erase_bonds  Will be true if the clear bonding button was pressed to wake the application up.
 */
-static void buttons_leds_init(bool *p_erase_bonds)
-{
+static void buttons_leds_init(bool *p_erase_bonds) {
   bsp_event_t startup_event;
 
   uint32_t err_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, bsp_event_handler);
@@ -627,8 +592,7 @@ static void buttons_leds_init(bool *p_erase_bonds)
 
 /**@brief Function for initializing the nrf log module.
 */
-static void log_init(void)
-{
+static void log_init(void) {
   ret_code_t err_code = NRF_LOG_INIT(NULL);
   APP_ERROR_CHECK(err_code);
 
@@ -637,8 +601,7 @@ static void log_init(void)
 
 /**@brief Function for initializing power management.
 */
-static void power_management_init(void)
-{
+static void power_management_init(void) {
   ret_code_t err_code;
   err_code = nrf_pwr_mgmt_init();
   APP_ERROR_CHECK(err_code);
@@ -648,41 +611,36 @@ static void power_management_init(void)
 
    @details If there is no pending log operation, then sleep until next the next event occurs.
 */
-static void idle_state_handle(void)
-{
+static void idle_state_handle(void) {
   UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
   nrf_pwr_mgmt_run();
 }
 
 /**@brief Function for starting advertising.
 */
-static void advertising_start(void)
-{
+static void advertising_start(void) {
   uint32_t err_code = ble_advertising_start(&m_advertising, BLE_ADV_MODE_FAST);
   APP_ERROR_CHECK(err_code);
 }
 
-void vApplicationIdleHook(void)
-{
+void vApplicationIdleHook(void) {
   //while (1)
   {
     idle_state_handle();
   }
 }
 
-uint32_t gps_data_get_bus(uint8_t *data, uint32_t len)
-{
+uint32_t gps_data_get_bus(uint8_t *data, uint32_t len) {
   uint32_t ret = 0;
   uint8_t i = 0;
   char *position;
-  if (data == NULL || len < 0)
-  {
+  if (data == NULL || len < 0) {
     return 1;
   }
+
   gps_data_get(data, len);
 
-  if (NULL != strstr((char *)data, "+CGNSINF: 1,1"))
-  {
+  if (NULL != strstr((char *)data, "+CGNSINF: 1,1")) {
 
     position = strstr((char *)data, ".000");
 
@@ -690,9 +648,7 @@ uint32_t gps_data_get_bus(uint8_t *data, uint32_t len)
     memcpy(longitude, position + 15, 7);
 
     ret = 1;
-  }
-  else
-  {
+  } else {
     ret = 0;
   }
 
@@ -701,10 +657,8 @@ uint32_t gps_data_get_bus(uint8_t *data, uint32_t len)
   return ret;
 }
 
-void Gsm_wait_response(uint8_t *rsp, uint32_t len, uint32_t timeout, GSM_RECEIVE_TYPE type)
-{
-  if (rsp == NULL || len < 0)
-  {
+void Gsm_wait_response(uint8_t *rsp, uint32_t len, uint32_t timeout, GSM_RECEIVE_TYPE type) {
+  if (rsp == NULL || len < 0) {
     return;
   }
   g_type = type;
@@ -713,17 +667,15 @@ void Gsm_wait_response(uint8_t *rsp, uint32_t len, uint32_t timeout, GSM_RECEIVE
   NRF_LOG_INFO("%s\r\n", GSM_RSP);
 }
 
-uint8_t TCPopenNetwork(const char *host, int port)
-{
+uint8_t TCPopenNetwork(const char *host, int port) {
   char str_tmp[64] = {0};
   uint8_t len[20] = {0};
 
   sprintf((char *)len, "AT+CIPSTART=\"TCP\",\"%s\",%d", host, port);
   Gsm_print(len);
-
+  NRF_LOG("TCPopenNETWORK");
 
   return Gsm_WaitRspOK(str_tmp, 1000, true);
-
 }
 
 //uint8_t   mqttPublish(char* iot_topic, String iot_data)
@@ -750,8 +702,7 @@ uint8_t TCPopenNetwork(const char *host, int port)
 
 //}
 
-void gsm_task(void *pvParameter)
-{
+void gsm_task(void *pvParameter) {
   uint8_t rsp[500] = {0};
   uint8_t device_key[9] = {0};
   uint8_t test_data[256] = {0};
@@ -773,11 +724,11 @@ void gsm_task(void *pvParameter)
   uint8_t i = 0;
   uint8_t j = 0;
 
-  NRF_LOG_INFO("Gsm_Inited.");
-  while (1)
-  {
+  NRF_LOG_INFO("[gsp task] Gsm_Inited.");
+  while (1) {
     // while(ble_status == 1)
     //       {
+    NRF_LOG_INFO("doing gsm_task");
     vTaskDelay(1000);
 
     char str_tmp[64];
@@ -796,10 +747,8 @@ void gsm_task(void *pvParameter)
     Gsm_WaitRspOK(str_tmp, 1000, true);
     vTaskDelay(100);
 
-
     Gsm_print("AT+CIICR");
     vTaskDelay(100);
-
 
     //        if(TCPopenNetwork(serverIP,1883)){                  //Connect to server
     //
@@ -816,8 +765,8 @@ void gsm_task(void *pvParameter)
 
     gps_data_get_bus(gps_data, 128);
 
-    //              vTaskDelay(500);
-    //              NRF_LOG_INFO("GPS = %s\r\n",gps_data);
+    vTaskDelay(500);
+    NRF_LOG_INFO("GPS = %s\r\n", gps_data);
     //              memset(test_data,0,256);
     //              sensor_len = sprintf((char *)test_data,"Acc:%d,%d,%d;Tem:%d;Hum:%d;Pre:%d;Mag:%d,%d,%d;Lig:%d;Gps:%s;",x,y,z,(int)temp,(int)humidity,(int)pressure,(int)magnetic_x,(int)magnetic_y,(int)magnetic_z,(int)light,gps_data);
     //              memset(cmd,0,128);
@@ -865,14 +814,12 @@ void gsm_task(void *pvParameter)
   }
 }
 
-static void main_task_function(void *pvParameter)
-{
+static void main_task_function(void *pvParameter) {
   nrf_gpio_cfg_output(LED_PIN);
   nrf_gpio_pin_write(LED_PIN, 1);
 
   UNUSED_PARAMETER(pvParameter);
-  while (1)
-  {
+  while (1) {
     NRF_LOG_FLUSH();
     nrf_gpio_pin_write(LED_PIN, 1);
     vTaskDelay(1000);
@@ -884,8 +831,7 @@ static void main_task_function(void *pvParameter)
   /* Tasks must be implemented to never return... */
 }
 
-static void motor_task_function(void *pvParameter)
-{
+static void motor_task_function(void *pvParameter) {
 
   UNUSED_PARAMETER(pvParameter);
   nrf_gpio_cfg_output(DRV88_IN1_PIN); // ccw
@@ -895,19 +841,14 @@ static void motor_task_function(void *pvParameter)
   nrf_gpio_cfg_input(LIMIT_SW2_PIN, NRF_GPIO_PIN_NOPULL);
   nrf_gpio_cfg_input(LIMIT_SW3_PIN, NRF_GPIO_PIN_NOPULL);
 
-  while (true)
-  {
-    if (nrf_gpio_pin_read(LIMIT_SW1_PIN) == 1)
-    {
+  while (true) {
+    if (nrf_gpio_pin_read(LIMIT_SW1_PIN) == 1) {
       lock_status = 0;
-    }
-    else
-    {
+    } else {
       lock_status = 1;
     }
 
-    if (unlock_command == 1)
-    {
+    if (unlock_command == 1) {
 
       NRF_LOG_INFO("Unlocking \n");
 
@@ -915,25 +856,21 @@ static void motor_task_function(void *pvParameter)
       nrf_gpio_pin_write(DRV88_IN2_PIN, 1);
       vTaskDelay(20);
       nrf_gpio_pin_write(DRV88_IN2_PIN, 0);
-      while (nrf_gpio_pin_read(LIMIT_SW2_PIN) == 0)
-      {
+      while (nrf_gpio_pin_read(LIMIT_SW2_PIN) == 0) {
         vTaskDelay(1);
       }
-      while (nrf_gpio_pin_read(LIMIT_SW3_PIN) == 1)
-      {
+      while (nrf_gpio_pin_read(LIMIT_SW3_PIN) == 1) {
         vTaskDelay(1);
       }
       nrf_gpio_pin_write(DRV88_IN2_PIN, 1);
       vTaskDelay(200);
       nrf_gpio_pin_write(DRV88_IN1_PIN, 0);
 
-      while (nrf_gpio_pin_read(LIMIT_SW3_PIN) == 0)
-      {
+      while (nrf_gpio_pin_read(LIMIT_SW3_PIN) == 0) {
         vTaskDelay(1);
       }
 
-      while (nrf_gpio_pin_read(LIMIT_SW3_PIN) == 1)
-      {
+      while (nrf_gpio_pin_read(LIMIT_SW3_PIN) == 1) {
         vTaskDelay(1);
       }
       nrf_gpio_pin_write(DRV88_IN1_PIN, 1);
@@ -952,9 +889,7 @@ static void motor_task_function(void *pvParameter)
 
 /**@brief Application main function.
 */
-int main(void)
-{
-  nrf_delay_ms(100);
+int main(void) {
   // Initialize.
 
   //uart_init();
@@ -975,7 +910,10 @@ int main(void)
   advertising_start();
 
   // Start execution.
-
+  NRF_LOG_INFO("[Booting...]");
+  NRF_LOG_INFO("[Booting...]");
+  NRF_LOG_INFO("[Booting...]");
+  NRF_LOG_INFO("[Booting...]");
   Gsm_Init();
 
   NRF_LOG_INFO("Debug logging for UART over RTT started.");
@@ -991,8 +929,7 @@ int main(void)
   vTaskStartScheduler();
 
   // Enter main loop.
-  for (;;)
-  {
+  for (;;) {
     //idle_state_handle();
   }
 }
